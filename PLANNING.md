@@ -79,6 +79,7 @@ type Splinter = {
   title: string;
   description?: string;
   coverImageUrl?: string;
+  callout?: string;
   tags: string[];
   type?: "idea" | "project" | "portfolio" | "recipe" | "writing" | "other";
   status: "draft" | "published";

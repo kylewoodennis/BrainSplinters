@@ -21,6 +21,10 @@ function toCreateSplinterInput(values: SplinterFormValues) {
     title: values.title,
     description: values.description || undefined,
     coverImageUrl: values.coverImageUrl || undefined,
+    coverImageAlt: values.coverImageAlt || undefined,
+    coverImageFit: values.coverImageFit,
+    coverImageContainerFit: values.coverImageContainerFit,
+    callout: values.callout || undefined,
     tags: parseTags(values.tags),
     type: values.type || undefined,
     status: values.status,
@@ -28,15 +32,21 @@ function toCreateSplinterInput(values: SplinterFormValues) {
 }
 
 function toCreatePostInput(values: PostFormValues) {
+  const images = values.images
+    .filter((img) => img.url.trim())
+    .map((img) => ({ url: img.url.trim(), alt: img.alt.trim() || undefined, fit: img.fit }));
   return {
     slug: values.slug,
     title: values.title || undefined,
-    imageUrl: values.imageUrl || undefined,
+    images,
+    imageUrl: images[0]?.url,
+    imageAlt: images[0]?.alt,
     tags: parseTags(values.tags),
     status: values.status,
     content: values.content,
   };
 }
+
 
 export function AdminDashboard({
   session,
@@ -162,6 +172,7 @@ export function AdminDashboard({
           {splinterMode === 'new' && (
             <SplinterForm
               splinter={null}
+              token={session.idToken}
               onSubmit={handleCreateSplinter}
               onCancel={() => setSplinterMode('list')}
             />
@@ -169,6 +180,7 @@ export function AdminDashboard({
           {typeof splinterMode === 'object' && 'edit' in splinterMode && (
             <SplinterForm
               splinter={splinterMode.edit}
+              token={session.idToken}
               onSubmit={(values) => handleEditSplinter(splinterMode.edit, values)}
               onCancel={() => setSplinterMode('list')}
             />
@@ -237,11 +249,18 @@ export function AdminDashboard({
           </div>
 
           {postMode === 'new' && (
-            <PostForm post={null} onSubmit={handleCreatePost} onCancel={() => setPostMode('list')} />
+            <PostForm
+              post={null}
+              defaultTags={selectedSplinter.tags}
+              token={session.idToken}
+              onSubmit={handleCreatePost}
+              onCancel={() => setPostMode('list')}
+            />
           )}
           {typeof postMode === 'object' && 'edit' in postMode && (
             <PostForm
               post={postMode.edit}
+              token={session.idToken}
               onSubmit={(values) => handleEditPost(postMode.edit, values)}
               onCancel={() => setPostMode('list')}
             />

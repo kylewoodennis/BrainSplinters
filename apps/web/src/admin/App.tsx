@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getStoredSession, signOut, type AuthSession } from '../lib/auth.js';
+import { LightboxProvider } from '../lib/Lightbox.js';
 import { LoginForm } from './LoginForm.js';
 import { AdminDashboard } from './AdminDashboard.js';
 
@@ -11,12 +12,14 @@ export function App(): React.JSX.Element {
   }
 
   return (
-    <AdminDashboard
-      session={session}
-      onSignOut={() => {
-        signOut();
-        setSession(null);
-      }}
-    />
+    <LightboxProvider>
+      <AdminDashboard
+        session={session}
+        onSignOut={() => {
+          signOut();
+          setSession(null);
+        }}
+      />
+    </LightboxProvider>
   );
 }

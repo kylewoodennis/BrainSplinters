@@ -2,6 +2,8 @@ import type {
   CreatePostInput,
   CreateSplinterInput,
   Post,
+  PresignUploadInput,
+  PresignUploadResult,
   Splinter,
   UpdatePostInput,
   UpdateSplinterInput,
@@ -75,6 +77,13 @@ export const api = {
   deletePost: (splinterId: string, postId: string, token: string) =>
     request<void>(`/splinters/${encode(splinterId)}/posts/${encode(postId)}`, {
       method: 'DELETE',
+      token,
+    }),
+
+  presignUpload: (input: PresignUploadInput, token: string) =>
+    request<PresignUploadResult>('/uploads/presign', {
+      method: 'POST',
+      body: JSON.stringify(input),
       token,
     }),
 };

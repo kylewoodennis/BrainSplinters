@@ -56,7 +56,8 @@ export function TipTapEditor({
       window.alert('Please enter a valid http(s) URL.');
       return;
     }
-    editor?.chain().focus().setImage({ src: url }).run();
+    const alt = window.prompt('Image description (for screen readers)') ?? '';
+    editor?.chain().focus().setImage({ src: url, alt }).run();
   }
 
   return (

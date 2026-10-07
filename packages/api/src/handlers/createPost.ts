@@ -31,6 +31,8 @@ export const handler = withErrorHandling(async (event) => {
     title: input.title,
     content: input.content,
     imageUrl: input.imageUrl,
+    imageAlt: input.imageAlt,
+    images: input.images ?? [],
     tags: input.tags ?? [],
     status: input.status,
     createdAt: now,

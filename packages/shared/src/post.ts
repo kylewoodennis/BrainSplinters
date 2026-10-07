@@ -1,7 +1,14 @@
 import { z } from 'zod';
-import { slugSchema, tagsSchema, contentStatusSchema, isoDateTimeSchema } from './common.js';
-import { optionalSafeHttpUrlSchema } from './url.js';
+import { slugSchema, tagsSchema, contentStatusSchema, isoDateTimeSchema, lightboxFitSchema } from './common.js';
+import { safeHttpUrlSchema, optionalSafeHttpUrlSchema } from './url.js';
 import { tiptapDocumentSchema, emptyTipTapDocument } from './tiptap.js';
+
+export const postImageSchema = z.object({
+  url: safeHttpUrlSchema,
+  alt: z.string().trim().max(300).optional(),
+  fit: lightboxFitSchema.optional(),
+});
+export type PostImage = z.infer<typeof postImageSchema>;
 
 export const postSchema = z.object({
   id: z.string().min(1),
@@ -10,6 +17,8 @@ export const postSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   content: tiptapDocumentSchema,
   imageUrl: optionalSafeHttpUrlSchema,
+  imageAlt: z.string().trim().max(300).optional(),
+  images: z.array(postImageSchema).max(20).optional(),
   tags: tagsSchema,
   status: contentStatusSchema,
   createdAt: isoDateTimeSchema,
@@ -23,6 +32,8 @@ export const createPostInputSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   content: tiptapDocumentSchema.optional().default(emptyTipTapDocument),
   imageUrl: optionalSafeHttpUrlSchema,
+  imageAlt: z.string().trim().max(300).optional(),
+  images: z.array(postImageSchema).max(20).optional(),
   tags: tagsSchema.optional(),
   status: contentStatusSchema.optional().default('draft'),
 });
@@ -33,7 +44,10 @@ export const updatePostInputSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   content: tiptapDocumentSchema.optional(),
   imageUrl: optionalSafeHttpUrlSchema,
+  imageAlt: z.string().trim().max(300).optional(),
+  images: z.array(postImageSchema).max(20).optional(),
   tags: tagsSchema.optional(),
   status: contentStatusSchema.optional(),
 });
 export type UpdatePostInput = z.infer<typeof updatePostInputSchema>;
+

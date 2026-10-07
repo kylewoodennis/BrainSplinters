@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { Splinter, SplinterType } from '@brainsplinters/shared';
+import type { ContainerFit, LightboxFit, Splinter, SplinterType } from '@brainsplinters/shared';
+import { ImageUploadField } from './ImageUploadField.js';
 
 const TYPES: SplinterType[] = ['idea', 'project', 'portfolio', 'recipe', 'writing', 'other'];
 
@@ -8,6 +9,10 @@ export type SplinterFormValues = {
   title: string;
   description: string;
   coverImageUrl: string;
+  coverImageAlt: string;
+  coverImageFit: LightboxFit | undefined;
+  coverImageContainerFit: ContainerFit | undefined;
+  callout: string;
   tags: string;
   type: SplinterType | '';
   status: 'draft' | 'published';
@@ -19,6 +24,10 @@ function toFormValues(splinter: Splinter | null): SplinterFormValues {
     title: splinter?.title ?? '',
     description: splinter?.description ?? '',
     coverImageUrl: splinter?.coverImageUrl ?? '',
+    coverImageAlt: splinter?.coverImageAlt ?? '',
+    coverImageFit: splinter?.coverImageFit,
+    coverImageContainerFit: splinter?.coverImageContainerFit,
+    callout: splinter?.callout ?? '',
     tags: splinter?.tags.join(', ') ?? '',
     type: splinter?.type ?? '',
     status: splinter?.status ?? 'draft',
@@ -27,10 +36,12 @@ function toFormValues(splinter: Splinter | null): SplinterFormValues {
 
 export function SplinterForm({
   splinter,
+  token,
   onSubmit,
   onCancel,
 }: {
   splinter: Splinter | null;
+  token: string;
   onSubmit: (values: SplinterFormValues) => Promise<void>;
   onCancel: () => void;
 }): React.JSX.Element {
@@ -63,7 +74,7 @@ export function SplinterForm({
           id="slug"
           value={values.slug}
           onChange={(e) => update('slug', e.target.value)}
-          placeholder="anonymous-age-verification"
+          placeholder="omnidirectional-treadmill"
           required
         />
       </div>
@@ -85,13 +96,27 @@ export function SplinterForm({
           rows={3}
         />
       </div>
+      <ImageUploadField
+        id="coverImageUrl"
+        label="Cover image"
+        value={values.coverImageUrl}
+        altValue={values.coverImageAlt}
+        fitValue={values.coverImageFit}
+        containerFitValue={values.coverImageContainerFit}
+        token={token}
+        onChange={(url) => update('coverImageUrl', url)}
+        onAltChange={(alt) => update('coverImageAlt', alt)}
+        onFitChange={(fit) => update('coverImageFit', fit)}
+        onContainerFitChange={(fit) => update('coverImageContainerFit', fit)}
+      />
       <div className="form-field">
-        <label htmlFor="coverImageUrl">Cover image URL</label>
-        <input
-          id="coverImageUrl"
-          value={values.coverImageUrl}
-          onChange={(e) => update('coverImageUrl', e.target.value)}
-          placeholder="https://…"
+        <label htmlFor="callout">Callout (e.g. a request for collaboration or support)</label>
+        <textarea
+          id="callout"
+          value={values.callout}
+          onChange={(e) => update('callout', e.target.value)}
+          rows={2}
+          placeholder="Looking for collaborators on…"
         />
       </div>
       <div className="form-field">

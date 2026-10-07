@@ -1,22 +1,29 @@
 import { useState } from 'react';
 import { emptyTipTapDocument, type Post, type TipTapDocument } from '@brainsplinters/shared';
 import { TipTapEditor } from './TipTapEditor.js';
+import { MultiImageUploadField, type PostImageValue } from './MultiImageUploadField.js';
 
 export type PostFormValues = {
   slug: string;
   title: string;
-  imageUrl: string;
+  images: PostImageValue[];
   tags: string;
   status: 'draft' | 'published';
   content: TipTapDocument;
 };
 
-function toFormValues(post: Post | null): PostFormValues {
+function toFormValues(post: Post | null, defaultTags: string[]): PostFormValues {
+  const images: PostImageValue[] =
+    post?.images && post.images.length > 0
+      ? post.images.map((img) => ({ url: img.url, alt: img.alt ?? '', fit: img.fit }))
+      : post?.imageUrl
+        ? [{ url: post.imageUrl, alt: post.imageAlt ?? '' }]
+        : [];
   return {
     slug: post?.slug ?? '',
     title: post?.title ?? '',
-    imageUrl: post?.imageUrl ?? '',
-    tags: post?.tags.join(', ') ?? '',
+    images,
+    tags: post?.tags.join(', ') ?? defaultTags.join(', '),
     status: post?.status ?? 'draft',
     content: post?.content ?? emptyTipTapDocument,
   };
@@ -24,14 +31,18 @@ function toFormValues(post: Post | null): PostFormValues {
 
 export function PostForm({
   post,
+  defaultTags = [],
+  token,
   onSubmit,
   onCancel,
 }: {
   post: Post | null;
+  defaultTags?: string[];
+  token: string;
   onSubmit: (values: PostFormValues) => Promise<void>;
   onCancel: () => void;
 }): React.JSX.Element {
-  const [values, setValues] = useState<PostFormValues>(() => toFormValues(post));
+  const [values, setValues] = useState<PostFormValues>(() => toFormValues(post, defaultTags));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -68,15 +79,11 @@ export function PostForm({
         <label htmlFor="post-title">Title (optional)</label>
         <input id="post-title" value={values.title} onChange={(e) => update('title', e.target.value)} />
       </div>
-      <div className="form-field">
-        <label htmlFor="post-image">Image URL (optional)</label>
-        <input
-          id="post-image"
-          value={values.imageUrl}
-          onChange={(e) => update('imageUrl', e.target.value)}
-          placeholder="https://…"
-        />
-      </div>
+      <MultiImageUploadField
+        images={values.images}
+        token={token}
+        onChange={(images) => update('images', images)}
+      />
       <div className="form-field">
         <label htmlFor="post-tags">Tags (comma separated)</label>
         <input

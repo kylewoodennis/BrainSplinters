@@ -64,6 +64,10 @@ entry points in production).
 
 ## Deploying
 
+See [DEPLOYMENT.md](DEPLOYMENT.md) for a full step-by-step AWS walkthrough
+(IAM, Route 53, CDK bootstrap, Cognito admin user, custom domain, and GitHub
+Actions CI/CD). Quick reference:
+
 From `packages/infrastructure`:
 
 ```bash

@@ -44,6 +44,27 @@ export class BrainSplintersStack extends cdk.Stack {
     });
 
     // ---------------------------------------------------------------------
+    // S3 -- admin-uploaded images (cover images, Post images). Private
+    // bucket; files are only ever read back out through the CloudFront
+    // `/uploads/*` behavior below, and only ever written via short-lived
+    // presigned PUT URLs issued by PresignUploadFn.
+    // ---------------------------------------------------------------------
+    const uploadsBucket = new s3.Bucket(this, 'UploadsBucket', {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      cors: [
+        {
+          allowedMethods: [s3.HttpMethods.PUT],
+          allowedOrigins: ['*'],
+          allowedHeaders: ['*'],
+          maxAge: 3000,
+        },
+      ],
+    });
+
+    // ---------------------------------------------------------------------
     // Cognito -- a single administrator, no public sign-up.
     // ---------------------------------------------------------------------
     const userPool = new cognito.UserPool(this, 'UserPool', {
@@ -92,7 +113,11 @@ export class BrainSplintersStack extends cdk.Stack {
         'const require = topLevelCreateRequire(import.meta.url);',
     };
 
-    const makeHandler = (name: string, file: string): lambdaNodejs.NodejsFunction =>
+    const makeHandler = (
+      name: string,
+      file: string,
+      extraEnvironment: Record<string, string> = {},
+    ): lambdaNodejs.NodejsFunction =>
       new lambdaNodejs.NodejsFunction(this, name, {
         entry: path.join(API_HANDLERS_DIR, file),
         handler: 'handler',
@@ -100,7 +125,7 @@ export class BrainSplintersStack extends cdk.Stack {
         architecture: lambda.Architecture.ARM_64,
         memorySize: 256,
         timeout: cdk.Duration.seconds(10),
-        environment: sharedEnvironment,
+        environment: { ...sharedEnvironment, ...extraEnvironment },
         bundling,
       });
 
@@ -114,6 +139,12 @@ export class BrainSplintersStack extends cdk.Stack {
     const createPostFn = makeHandler('CreatePostFn', 'createPost.ts');
     const updatePostFn = makeHandler('UpdatePostFn', 'updatePost.ts');
     const deletePostFn = makeHandler('DeletePostFn', 'deletePost.ts');
+    // UPLOADS_PUBLIC_BASE_URL is filled in below, once the CloudFront
+    // distribution (and its custom domain, if any) is known.
+    const presignUploadFn = makeHandler('PresignUploadFn', 'presignUpload.ts', {
+      UPLOADS_BUCKET_NAME: uploadsBucket.bucketName,
+    });
+    uploadsBucket.grantPut(presignUploadFn);
 
     for (const fn of [
       listSplintersFn,
@@ -217,6 +248,12 @@ export class BrainSplintersStack extends cdk.Stack {
       integration: integration(deletePostFn),
       authorizer: jwtAuthorizer,
     });
+    httpApi.addRoutes({
+      path: '/uploads/presign',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: integration(presignUploadFn),
+      authorizer: jwtAuthorizer,
+    });
 
     // ---------------------------------------------------------------------
     // Frontend hosting -- private S3 bucket behind CloudFront.
@@ -264,6 +301,7 @@ export class BrainSplintersStack extends cdk.Stack {
     }
 
     const origin = origins.S3BucketOrigin.withOriginAccessControl(siteBucket);
+    const uploadsOrigin = origins.S3BucketOrigin.withOriginAccessControl(uploadsBucket);
 
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultRootObject: 'index.html',
@@ -302,8 +340,20 @@ export class BrainSplintersStack extends cdk.Stack {
             { function: adminRewriteFn, eventType: cloudfront.FunctionEventType.VIEWER_REQUEST },
           ],
         },
+        '/uploads/*': {
+          origin: uploadsOrigin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        },
       },
     });
+
+    // Uploaded images are served back through this same distribution, so the
+    // public URL PresignUploadFn hands out is the site's own domain.
+    presignUploadFn.addEnvironment(
+      'UPLOADS_PUBLIC_BASE_URL',
+      domainName ? `https://${domainName}` : `https://${distribution.distributionDomainName}`,
+    );
 
     if (useCustomDomain && domainName && hostedZone) {
       new route53.ARecord(this, 'ApexAliasRecord', {

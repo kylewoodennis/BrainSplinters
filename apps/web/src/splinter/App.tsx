@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Post, Splinter } from '@brainsplinters/shared';
 import { parsePostIdFromSearch, parseSplinterIdFromPathname } from '@brainsplinters/shared';
 import { api, ApiError } from '../lib/api.js';
+import { LightboxProvider, useLightbox } from '../lib/Lightbox.js';
 import { PostView } from './PostView.js';
 
 function postElementId(postId: string): string {
@@ -9,6 +10,14 @@ function postElementId(postId: string): string {
 }
 
 export function App(): React.JSX.Element {
+  return (
+    <LightboxProvider>
+      <SplinterPage />
+    </LightboxProvider>
+  );
+}
+
+function SplinterPage(): React.JSX.Element {
   const splinterId = useMemo(
     () => parseSplinterIdFromPathname(window.location.pathname),
     [],
@@ -19,6 +28,9 @@ export function App(): React.JSX.Element {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(() =>
     parsePostIdFromSearch(window.location.search),
   );
+  const [coverIsWide, setCoverIsWide] = useState(false);
+  const openLightbox = useLightbox();
+
 
   useEffect(() => {
     if (!splinterId) return;
@@ -79,10 +91,49 @@ export function App(): React.JSX.Element {
         <>
           <header className="splinter-header">
             {splinter.coverImageUrl && (
-              <img className="splinter-cover" src={splinter.coverImageUrl} alt="" />
+              <img
+                className="splinter-cover"
+                style={
+                  (splinter.coverImageContainerFit?.size ??
+                    (splinter.type === 'portfolio' ? 'fill' : 'fit')) === 'fit'
+                    ? { objectFit: 'contain', objectPosition: 'center', background: '#000' }
+                    : {
+                        objectFit: 'cover',
+                        objectPosition:
+                          splinter.coverImageContainerFit?.align ??
+                          (coverIsWide ? 'center' : 'top'),
+                        background: 'none',
+                      }
+                }
+                src={splinter.coverImageUrl}
+                alt={splinter.coverImageAlt ?? ''}
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  setCoverIsWide(img.naturalWidth >= img.naturalHeight);
+                }}
+                onClick={() =>
+                  openLightbox(
+                    [
+                      {
+                        url: splinter.coverImageUrl as string,
+                        alt: splinter.coverImageAlt,
+                        variant: splinter.type === 'portfolio' ? 'portfolio' : undefined,
+                        fit: splinter.coverImageFit,
+                      },
+                    ],
+                    0,
+                  )
+                }
+              />
             )}
             <h1 className="site-title">{splinter.title}</h1>
             {splinter.description && <p className="site-tagline">{splinter.description}</p>}
+            {splinter.callout && (
+              <div className="callout-box">
+                <span className="callout-label">Calling Out</span>
+                <p>{splinter.callout}</p>
+              </div>
+            )}
             {splinter.tags.length > 0 && (
               <div className="chip-row">
                 {splinter.type && <span className="chip chip-type">{splinter.type}</span>}
@@ -104,6 +155,7 @@ export function App(): React.JSX.Element {
                 post={post}
                 elementId={postElementId(post.id)}
                 isHighlighted={post.id === selectedPostId}
+                isPortfolio={splinter.type === 'portfolio'}
                 onSelectPermalink={() => selectPost(post.id)}
               />
             ))}
