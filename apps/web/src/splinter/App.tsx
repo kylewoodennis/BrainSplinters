@@ -4,6 +4,7 @@ import { parsePostIdFromSearch, parseSplinterIdFromPathname } from '@brainsplint
 import { api, ApiError } from '../lib/api.js';
 import { LightboxProvider, useLightbox } from '../lib/Lightbox.js';
 import { PostView } from './PostView.js';
+import { VisitorSubmissionForm } from './VisitorSubmissionForm.js';
 
 function postElementId(postId: string): string {
   return `post-${postId}`;
@@ -160,6 +161,10 @@ function SplinterPage(): React.JSX.Element {
               />
             ))}
           </div>
+
+          {splinter.visitorSubmissions?.enabled && (
+            <VisitorSubmissionForm splinterId={splinter.id} config={splinter.visitorSubmissions} />
+          )}
         </>
       )}
     </div>

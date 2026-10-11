@@ -139,6 +139,11 @@ export class BrainSplintersStack extends cdk.Stack {
     const createPostFn = makeHandler('CreatePostFn', 'createPost.ts');
     const updatePostFn = makeHandler('UpdatePostFn', 'updatePost.ts');
     const deletePostFn = makeHandler('DeletePostFn', 'deletePost.ts');
+    const createVisitorPostFn = makeHandler('CreateVisitorPostFn', 'createVisitorPost.ts');
+    const listVisitorSubmissionsFn = makeHandler(
+      'ListVisitorSubmissionsFn',
+      'listVisitorSubmissions.ts',
+    );
     // UPLOADS_PUBLIC_BASE_URL is filled in below, once the CloudFront
     // distribution (and its custom domain, if any) is known.
     const presignUploadFn = makeHandler('PresignUploadFn', 'presignUpload.ts', {
@@ -157,10 +162,20 @@ export class BrainSplintersStack extends cdk.Stack {
       createPostFn,
       updatePostFn,
       deletePostFn,
+      createVisitorPostFn,
+      listVisitorSubmissionsFn,
     ]) {
       table.grantReadData(fn);
     }
-    for (const fn of [createSplinterFn, updateSplinterFn, deleteSplinterFn, createPostFn, updatePostFn, deletePostFn]) {
+    for (const fn of [
+      createSplinterFn,
+      updateSplinterFn,
+      deleteSplinterFn,
+      createPostFn,
+      updatePostFn,
+      deletePostFn,
+      createVisitorPostFn,
+    ]) {
       table.grantWriteData(fn);
     }
 
@@ -248,12 +263,40 @@ export class BrainSplintersStack extends cdk.Stack {
       integration: integration(deletePostFn),
       authorizer: jwtAuthorizer,
     });
+    // Public (no authorizer): anonymous visitors submit a Post for review.
+    // Throttled below, separately from the rest of the API, since it's the
+    // only unauthenticated write route.
+    const [createVisitorPostRoute] = httpApi.addRoutes({
+      path: '/splinters/{splinterId}/visitor-posts',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: integration(createVisitorPostFn),
+    });
+    httpApi.addRoutes({
+      path: '/visitor-submissions',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: integration(listVisitorSubmissionsFn),
+      authorizer: jwtAuthorizer,
+    });
     httpApi.addRoutes({
       path: '/uploads/presign',
       methods: [apigwv2.HttpMethod.POST],
       integration: integration(presignUploadFn),
       authorizer: jwtAuthorizer,
     });
+
+    // Low-effort abuse protection for the one public write route: cap it
+    // well below what a legitimate visitor would ever need, independent of
+    // the rest of the API's (default, unthrottled) limits.
+    const stage = httpApi.defaultStage?.node.defaultChild as apigwv2.CfnStage;
+    stage.routeSettings = {
+      'POST /splinters/{splinterId}/visitor-posts': {
+        ThrottlingRateLimit: 2,
+        ThrottlingBurstLimit: 5,
+      },
+    };
+    // The stage's route settings reference this route by key, so the route
+    // must be created before the stage is updated with those settings.
+    if (createVisitorPostRoute) stage.node.addDependency(createVisitorPostRoute);
 
     // ---------------------------------------------------------------------
     // Frontend hosting -- private S3 bucket behind CloudFront.

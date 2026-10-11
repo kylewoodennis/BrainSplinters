@@ -405,6 +405,12 @@ select:focus-visible,
   border-color: #a33;
 }
 
+.admin-login button:disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .error-text {
   color: #a33;
   font-size: 0.9rem;
@@ -708,3 +714,87 @@ select:focus-visible,
   }
 }
 
+.visitor-submissions-config {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.visitor-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.visitor-field-row label.is-disabled {
+  opacity: 0.5;
+}
+
+.admin-inbox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-inbox-item {
+  align-items: flex-start;
+}
+
+.inbox-content-preview {
+  margin-top: 0.4rem;
+  max-width: 50ch;
+  color: var(--muted);
+}
+
+.visitor-submission-form {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.visitor-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.required-mark {
+  color: #a33;
+}
+
+.visitor-content-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.word-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.word-count.is-invalid {
+  color: #a33;
+  font-weight: 600;
+}
+
+.flex-input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.post-submitter {
+  margin-top: 0.4rem;
+  font-style: italic;
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Post, Splinter } from '@brainsplinters/shared';
 import { api, ApiError } from '../lib/api.js';
+import { TipTapContent } from '../lib/TipTapContent.js';
 import type { AuthSession } from '../lib/auth.js';
 import { SplinterForm, type SplinterFormValues } from './SplinterForm.js';
 import { PostForm, type PostFormValues } from './PostForm.js';
@@ -16,6 +17,7 @@ function parseTags(tags: string): string[] {
 }
 
 function toCreateSplinterInput(values: SplinterFormValues) {
+  const vs = values.visitorSubmissions;
   return {
     slug: values.slug,
     title: values.title,
@@ -28,6 +30,20 @@ function toCreateSplinterInput(values: SplinterFormValues) {
     tags: parseTags(values.tags),
     type: values.type || undefined,
     status: values.status,
+    visitorSubmissions: {
+      enabled: vs.enabled,
+      prompt: vs.prompt || undefined,
+      firstName: vs.firstName,
+      lastName: vs.lastName,
+      email: vs.email,
+      phone: vs.phone,
+      allowAnonymous: vs.allowAnonymous,
+      minWordCount: vs.minWordCount || undefined,
+      maxWordCount: vs.maxWordCount || undefined,
+      minImages: vs.minImages || undefined,
+      maxImages: vs.maxImages || undefined,
+      singleImageContainerFit: vs.singleImageContainerFit,
+    },
   };
 }
 
@@ -61,6 +77,17 @@ export function AdminDashboard({
   const [selectedSplinterId, setSelectedSplinterId] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [postMode, setPostMode] = useState<PostMode>('list');
+  const [showInbox, setShowInbox] = useState(false);
+  const [pendingSubmissions, setPendingSubmissions] = useState<Post[] | null>(null);
+
+  const loadInbox = useCallback(() => {
+    api
+      .listVisitorSubmissions(session.idToken)
+      .then((result) => setPendingSubmissions(result.sort((a, b) => a.createdAt.localeCompare(b.createdAt))))
+      .catch((err: unknown) => setError(err instanceof ApiError ? err.message : 'Load failed.'));
+  }, [session.idToken]);
+
+  useEffect(loadInbox, [loadInbox]);
 
   const loadSplinters = useCallback(() => {
     api
@@ -147,6 +174,19 @@ export function AdminDashboard({
     loadPosts(post.splinterId);
   }
 
+  async function handleApproveSubmission(post: Post) {
+    await api.updatePost(post.splinterId, post.id, { status: 'published' }, session.idToken);
+    loadInbox();
+    if (selectedSplinterId === post.splinterId) loadPosts(post.splinterId);
+  }
+
+  async function handleRejectSubmission(post: Post) {
+    if (!window.confirm('Reject and delete this submission? This cannot be undone.')) return;
+    await api.deletePost(post.splinterId, post.id, session.idToken);
+    loadInbox();
+    if (selectedSplinterId === post.splinterId) loadPosts(post.splinterId);
+  }
+
   return (
     <div className="admin-shell">
       <div className="site-header">
@@ -162,12 +202,62 @@ export function AdminDashboard({
         <section>
           <div className="site-header">
             <h2>Splinters</h2>
-            {splinterMode === 'list' && (
-              <button className="btn" type="button" onClick={() => setSplinterMode('new')}>
-                + New Splinter
+            <div className="chip-row">
+              <button className="btn secondary" type="button" onClick={() => setShowInbox((v) => !v)}>
+                {showInbox ? 'Hide Inbox' : `Inbox (${pendingSubmissions?.length ?? 0})`}
               </button>
-            )}
+              {splinterMode === 'list' && (
+                <button className="btn" type="button" onClick={() => setSplinterMode('new')}>
+                  + New Splinter
+                </button>
+              )}
+            </div>
           </div>
+
+          {showInbox && (
+            <div className="admin-inbox">
+              {(pendingSubmissions ?? []).length === 0 && (
+                <p className="empty-state">No pending submissions.</p>
+              )}
+              {(pendingSubmissions ?? []).map((post) => {
+                const splinterTitle =
+                  splinters?.find((s) => s.id === post.splinterId)?.title ?? post.splinterId;
+                const submitter = post.submitter;
+                const name =
+                  submitter?.anonymous || (!submitter?.firstName && !submitter?.lastName)
+                    ? 'Anonymous'
+                    : [submitter?.firstName, submitter?.lastName].filter(Boolean).join(' ');
+                return (
+                  <div className="admin-list-item admin-inbox-item" key={post.id}>
+                    <div>
+                      <strong>{name}</strong> <span className="meta-line">→ {splinterTitle}</span>
+                      {submitter?.email && <div className="meta-line">{submitter.email}</div>}
+                      {submitter?.phone && <div className="meta-line">{submitter.phone}</div>}
+                      <div className="inbox-content-preview">
+                        <TipTapContent doc={post.content} />
+                      </div>
+                    </div>
+                    <div className="chip-row">
+                      <button
+                        className="btn secondary"
+                        type="button"
+                        onClick={() => handleApproveSubmission(post)}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        className="btn danger"
+                        type="button"
+                        onClick={() => handleRejectSubmission(post)}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {splinterMode === 'new' && (
             <SplinterForm

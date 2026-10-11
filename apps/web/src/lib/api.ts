@@ -1,6 +1,7 @@
 import type {
   CreatePostInput,
   CreateSplinterInput,
+  CreateVisitorPostInput,
   Post,
   PresignUploadInput,
   PresignUploadResult,
@@ -86,4 +87,12 @@ export const api = {
       body: JSON.stringify(input),
       token,
     }),
+
+  createVisitorPost: (splinterId: string, input: CreateVisitorPostInput) =>
+    request<{ message: string }>(`/splinters/${encode(splinterId)}/visitor-posts`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  listVisitorSubmissions: (token: string) =>
+    request<Post[]>('/visitor-submissions', { token }),
 };

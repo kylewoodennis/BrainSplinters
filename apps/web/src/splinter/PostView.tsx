@@ -26,6 +26,20 @@ function getPostImages(post: Post, isPortfolio: boolean): LightboxImage[] {
   return [];
 }
 
+/**
+ * Inline style for the single-image header display, honoring the image's
+ * `containerFit` override (e.g. letterboxing instead of cropping to fill).
+ * Returns undefined when no override is set, leaving the default CSS
+ * (crop-to-fill) in place.
+ */
+function getSingleImageStyle(post: Post): React.CSSProperties | undefined {
+  const containerFit = post.images?.[0]?.containerFit;
+  if (!containerFit) return undefined;
+  return containerFit.size === 'fit'
+    ? { objectFit: 'contain', objectPosition: 'center', background: '#000' }
+    : { objectFit: 'cover', objectPosition: containerFit.align ?? 'top', background: 'none' };
+}
+
 export function PostView({
   post,
   elementId,
@@ -88,6 +102,7 @@ export function PostView({
           src={images[0].url}
           alt={images[0].alt ?? ''}
           loading="lazy"
+          style={getSingleImageStyle(post)}
           onClick={() => openLightbox(images, 0)}
         />
       )}
@@ -106,6 +121,11 @@ export function PostView({
         </div>
       )}
       <TipTapContent doc={post.content} />
+      {post.source === 'visitor' && post.submitter && !post.submitter.anonymous && (
+        <p className="meta-line post-submitter">
+          Submitted by {[post.submitter.firstName, post.submitter.lastName].filter(Boolean).join(' ')}
+        </p>
+      )}
       {post.tags.length > 0 && (
         <div className="chip-row">
           {post.tags.map((tag) => (

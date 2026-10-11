@@ -8,6 +8,7 @@ import {
   containerFitSchema,
 } from './common.js';
 import { optionalSafeHttpUrlSchema } from './url.js';
+import { visitorSubmissionConfigSchema } from './visitorSubmission.js';
 
 export const splinterTypeSchema = z.enum([
   'idea',
@@ -32,6 +33,7 @@ export const splinterSchema = z.object({
   tags: tagsSchema,
   type: splinterTypeSchema.optional(),
   status: contentStatusSchema,
+  visitorSubmissions: visitorSubmissionConfigSchema.optional(),
   createdAt: isoDateTimeSchema,
   updatedAt: isoDateTimeSchema,
   createdBy: z.string().min(1),
@@ -51,6 +53,7 @@ export const createSplinterInputSchema = z.object({
   tags: tagsSchema.optional(),
   type: splinterTypeSchema.optional(),
   status: contentStatusSchema.optional().default('draft'),
+  visitorSubmissions: visitorSubmissionConfigSchema.optional(),
 });
 export type CreateSplinterInput = z.infer<typeof createSplinterInputSchema>;
 
@@ -67,5 +70,6 @@ export const updateSplinterInputSchema = z.object({
   tags: tagsSchema.optional(),
   type: splinterTypeSchema.optional(),
   status: contentStatusSchema.optional(),
+  visitorSubmissions: visitorSubmissionConfigSchema.optional(),
 });
 export type UpdateSplinterInput = z.infer<typeof updateSplinterInputSchema>;

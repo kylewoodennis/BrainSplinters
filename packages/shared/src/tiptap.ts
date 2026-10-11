@@ -50,3 +50,24 @@ export const emptyTipTapDocument: TipTapDocument = {
   type: 'doc',
   content: [{ type: 'paragraph' }],
 };
+
+/**
+ * Converts plain text (e.g. from a visitor submission's multiline textarea)
+ * into a minimal TipTap document: each non-empty line becomes its own
+ * paragraph node. Used so visitor-submitted Posts render through the same
+ * `TipTapContent` component as admin-authored ones.
+ */
+export function textToTipTapDocument(text: string): TipTapDocument {
+  const paragraphs = text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (paragraphs.length === 0) return emptyTipTapDocument;
+  return {
+    type: 'doc',
+    content: paragraphs.map((line) => ({
+      type: 'paragraph',
+      content: [{ type: 'text', text: line }],
+    })),
+  };
+}

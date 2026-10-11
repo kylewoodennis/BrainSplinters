@@ -5,3 +5,4 @@ export * from './splinter.js';
 export * from './post.js';
 export * from './routing.js';
 export * from './upload.js';
+export * from './visitorSubmission.js';

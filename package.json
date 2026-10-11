@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "deploy": "npm run build && npm run deploy --workspace packages/infrastructure",
-    "cdk": "npm run cdk --workspace packages/infrastructure"
+    "cdk": "npm run cdk --workspace packages/infrastructure",
+    "backup": "npm run build --workspace packages/shared && npm run build --workspace packages/api && npm run backup --workspace packages/api"
   },
   "devDependencies": {
     "@eslint/js": "^9.12.0",

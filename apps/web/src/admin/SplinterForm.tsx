@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import type { ContainerFit, LightboxFit, Splinter, SplinterType } from '@brainsplinters/shared';
 import { ImageUploadField } from './ImageUploadField.js';
+import {
+  VisitorSubmissionsFields,
+  DEFAULT_VISITOR_FIELD,
+  type VisitorSubmissionsFormValues,
+} from './VisitorSubmissionsFields.js';
 
 const TYPES: SplinterType[] = ['idea', 'project', 'portfolio', 'recipe', 'writing', 'other'];
 
@@ -16,6 +21,7 @@ export type SplinterFormValues = {
   tags: string;
   type: SplinterType | '';
   status: 'draft' | 'published';
+  visitorSubmissions: VisitorSubmissionsFormValues;
 };
 
 function toFormValues(splinter: Splinter | null): SplinterFormValues {
@@ -31,6 +37,20 @@ function toFormValues(splinter: Splinter | null): SplinterFormValues {
     tags: splinter?.tags.join(', ') ?? '',
     type: splinter?.type ?? '',
     status: splinter?.status ?? 'draft',
+    visitorSubmissions: {
+      enabled: splinter?.visitorSubmissions?.enabled ?? false,
+      prompt: splinter?.visitorSubmissions?.prompt ?? '',
+      firstName: splinter?.visitorSubmissions?.firstName ?? DEFAULT_VISITOR_FIELD,
+      lastName: splinter?.visitorSubmissions?.lastName ?? DEFAULT_VISITOR_FIELD,
+      email: splinter?.visitorSubmissions?.email ?? DEFAULT_VISITOR_FIELD,
+      phone: splinter?.visitorSubmissions?.phone ?? DEFAULT_VISITOR_FIELD,
+      allowAnonymous: splinter?.visitorSubmissions?.allowAnonymous ?? false,
+      minWordCount: splinter?.visitorSubmissions?.minWordCount ?? 0,
+      maxWordCount: splinter?.visitorSubmissions?.maxWordCount ?? 0,
+      minImages: splinter?.visitorSubmissions?.minImages ?? 0,
+      maxImages: splinter?.visitorSubmissions?.maxImages ?? 0,
+      singleImageContainerFit: splinter?.visitorSubmissions?.singleImageContainerFit,
+    },
   };
 }
 
@@ -134,6 +154,10 @@ export function SplinterForm({
           ))}
         </select>
       </div>
+      <VisitorSubmissionsFields
+        value={values.visitorSubmissions}
+        onChange={(visitorSubmissions) => update('visitorSubmissions', visitorSubmissions)}
+      />
       <div className="form-field">
         <label htmlFor="status">Status</label>
         <select
